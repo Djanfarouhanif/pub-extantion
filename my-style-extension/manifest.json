@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "My Style Extension",
+  "name": "Domix",
   "version": "1.2",
   "description": "Applique des modifications CSS et JS automatiques.",
   "permissions": [
@@ -9,7 +9,17 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Configurer les styles"
+    "default_title": "Configurer les styles",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
   },
   "content_scripts": [
     {
