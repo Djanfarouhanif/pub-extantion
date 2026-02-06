@@ -4,7 +4,8 @@
   "version": "1.2",
   "description": "Applique des modifications CSS et JS automatiques.",
   "permissions": [
-    "storage"
+    "storage",
+    "activeTab"
   ],
   "action": {
     "default_popup": "popup.html",

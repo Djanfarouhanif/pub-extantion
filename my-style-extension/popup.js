@@ -12,20 +12,44 @@ const cssEditor = document.getElementById('css-editor');
 const saveCssBtn = document.getElementById('save-css-btn');
 const saveMsg = document.getElementById('save-msg');
 
+const addCurrentSiteBtn = document.getElementById('add-current-site-btn');
+const domainsList = document.getElementById('domains-list');
+
 // État local
 let rules = [];
+let allowedDomains = [];
+
+// Désactiver le bouton tant que ce n'est pas chargé pour éviter d'écraser les données
+addBtn.disabled = true;
+addBtn.textContent = 'Chargement...';
 
 // --- CHARGEMENT ---
 
 // Charger la configuration au démarrage
 function loadConfig() {
-  chrome.storage.local.get(['rules', 'customCSS'], (result) => {
-    // Charger les règles
-    rules = result.rules || [];
+  chrome.storage.local.get(['rules', 'customCSS', 'allowedDomains'], (result) => {
+    // S'assurer que rules est bien un tableau
+    if (Array.isArray(result.rules)) {
+      rules = result.rules;
+    } else {
+      rules = [];
+    }
+
+    if (Array.isArray(result.allowedDomains)) {
+        allowedDomains = result.allowedDomains;
+    } else {
+        allowedDomains = [];
+    }
+
     renderRules();
+    renderDomains();
 
     // Charger le CSS
     cssEditor.value = result.customCSS || '';
+
+    // Activer l'interface
+    addBtn.disabled = false;
+    addBtn.textContent = 'Ajouter';
   });
 }
 
@@ -46,14 +70,14 @@ function renderRules() {
         <span class="rule-selector">${escapeHtml(rule.selector)}</span>
         <span class="rule-class">.${escapeHtml(rule.addClass)}</span>
       </div>
-      <button class="delete-btn" data-index="${index}">✖</button>
+      <button class="delete-btn rule-delete" data-index="${index}">✖</button>
     `;
 
     rulesList.appendChild(li);
   });
 
   // Ajouter les écouteurs sur les boutons de suppression
-  document.querySelectorAll('.delete-btn').forEach(btn => {
+  document.querySelectorAll('.rule-delete').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const index = parseInt(e.target.dataset.index);
       deleteRule(index);
@@ -80,12 +104,68 @@ function deleteRule(index) {
   saveRules();
 }
 
-// Sauvegarder les règles dans le storage
+// Sauvegarder les règles
 function saveRules() {
   chrome.storage.local.set({ rules: rules }, () => {
     renderRules();
   });
 }
+
+// --- GESTION DES DOMAINES ---
+
+function renderDomains() {
+    domainsList.innerHTML = '';
+    if (allowedDomains.length === 0) {
+        domainsList.innerHTML = '<li style="padding:10px; color:#777; font-style:italic; font-size:12px;">Aucun site autorisé. L\'extension est inactive.</li>';
+        return;
+    }
+
+    allowedDomains.forEach((domain, index) => {
+        const li = document.createElement('li');
+        li.className = 'rule-item';
+        li.innerHTML = `
+            <div class="rule-desc">
+                <span class="rule-selector" style="color:#28a745;">${escapeHtml(domain)}</span>
+            </div>
+            <button class="delete-btn domain-delete" data-index="${index}">✖</button>
+        `;
+        domainsList.appendChild(li);
+    });
+
+    document.querySelectorAll('.domain-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            allowedDomains.splice(index, 1);
+            saveDomains();
+        });
+    });
+}
+
+// Ajouter le site courant
+addCurrentSiteBtn.addEventListener('click', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs && tabs[0]) {
+            try {
+                const url = new URL(tabs[0].url);
+                const hostname = url.hostname;
+
+                if (!allowedDomains.includes(hostname)) {
+                    allowedDomains.push(hostname);
+                    saveDomains();
+                }
+            } catch (e) {
+                console.error("Impossible de récupérer l'URL", e);
+            }
+        }
+    });
+});
+
+function saveDomains() {
+    chrome.storage.local.set({ allowedDomains: allowedDomains }, () => {
+        renderDomains();
+    });
+}
+
 
 // --- GESTION DU CSS ---
 

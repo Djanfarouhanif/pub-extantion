@@ -1,33 +1,26 @@
 /**
  * content.js
  * Script injecté sur les pages cibles.
- * Version dynamique : Charge la configuration depuis le storage.
+ * Version dynamique + Whitelist.
  */
 
 // --- ÉTAT ---
-
 let activeRules = [];
+let isAllowed = false;
 
 // --- LOGIQUE ---
 
-/**
- * Applique les règles de style sur un nœud racine et ses enfants.
- * @param {Node} root - Le nœud à analyser (document ou un élément ajouté).
- */
 function applyStyles(root = document) {
-  if (activeRules.length === 0) return;
+  if (!isAllowed || activeRules.length === 0) return;
 
   activeRules.forEach(rule => {
-    // 1. Sur l'élément lui-même
     if (root instanceof Element && root.matches(rule.selector)) {
       if (!root.classList.contains(rule.addClass)) {
         root.classList.add(rule.addClass);
       }
     }
 
-    // 2. Sur les descendants
     if (root instanceof Element || root instanceof Document) {
-      // try/catch pour éviter de planter sur des sélecteurs invalides
       try {
         const elements = root.querySelectorAll(rule.selector);
         elements.forEach(el => {
@@ -35,55 +28,81 @@ function applyStyles(root = document) {
               el.classList.add(rule.addClass);
           }
         });
-      } catch (e) {
-        // console.warn('Sélecteur invalide:', rule.selector);
-      }
+      } catch (e) { }
     }
   });
 }
 
-/**
- * Injecte ou met à jour le CSS personnalisé dans le HEAD
- */
 function injectCustomCSS(cssContent) {
+  if (!isAllowed) return; // Sécurité supplémentaire
+
   const styleId = 'my-style-extension-custom-css';
   let styleEl = document.getElementById(styleId);
 
   if (!styleEl) {
     styleEl = document.createElement('style');
     styleEl.id = styleId;
-    document.head.appendChild(styleEl); // Ou document.documentElement si head absent
+    document.head.appendChild(styleEl);
   }
 
   styleEl.textContent = cssContent || '';
+}
+
+// --- VÉRIFICATION DOMAINE ---
+
+function checkDomainAllowed(allowedDomains) {
+    if (!Array.isArray(allowedDomains) || allowedDomains.length === 0) {
+        return false; // Pas de whitelist définie = bloquer tout
+    }
+    const hostname = window.location.hostname;
+    // Vérifie si le hostname actuel contient un des domaines autorisés
+    // Ex: "www.google.com" contient "google.com"
+    return allowedDomains.some(domain => hostname.includes(domain));
 }
 
 
 // --- INITIALISATION & STORAGE ---
 
 function init() {
-  // 1. Charger la config initiale
-  chrome.storage.local.get(['rules', 'customCSS'], (result) => {
+  chrome.storage.local.get(['rules', 'customCSS', 'allowedDomains'], (result) => {
+    const allowedDomains = result.allowedDomains || [];
+    isAllowed = checkDomainAllowed(allowedDomains);
+
+    if (!isAllowed) {
+        // console.log('[My Style Extension] Domaine non autorisé:', window.location.hostname);
+        return; // ON ARRÊTE TOUT ICI
+    }
+
+    // console.log('[My Style Extension] Activé sur:', window.location.hostname);
+
     activeRules = result.rules || [];
     const customCSS = result.customCSS || '';
 
-    // Injecter CSS
     injectCustomCSS(customCSS);
-
-    // Appliquer règles initiales
     applyStyles(document);
-
-    // Lancer l'observer une fois la config chargée pour éviter de travailler pour rien
     observeDOM();
   });
 }
 
-// 2. Écouter les changements de configuration (Temps réel)
+// Écouter les changements (pour activation/désactivation dynamique)
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local') {
+    // Si la liste des domaines change, on doit re-vérifier si on est autorisé
+    // Pour simplifier : on recharge la page si le statut change, OU on recharge la config
+    // Ici, on recharge la config
+    if (changes.allowedDomains) {
+        const newAllowed = checkDomainAllowed(changes.allowedDomains.newValue);
+        if (newAllowed !== isAllowed) {
+             // Changement d'état majeur -> rechargement simple de la config
+             window.location.reload();
+             return;
+        }
+    }
+
+    if (!isAllowed) return; // Si toujours interdit, on ignore le reste
+
     if (changes.rules) {
       activeRules = changes.rules.newValue || [];
-      // Ré-appliquer immédiatement sur tout le document
       applyStyles(document);
     }
 
@@ -96,6 +115,8 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 // --- OBSERVATION (SPA / Dynamique) ---
 
 const observer = new MutationObserver((mutations) => {
+  if (!isAllowed) return; // Ne rien faire si non autorisé
+
   mutations.forEach((mutation) => {
     if (mutation.type === 'childList') {
       mutation.addedNodes.forEach((node) => {
@@ -108,6 +129,7 @@ const observer = new MutationObserver((mutations) => {
 });
 
 const observeDOM = () => {
+    // On ne lance l'observer que si autorisé (vérifié dans init)
     if (document.body) {
         observer.observe(document.body, {
             childList: true,
@@ -118,7 +140,6 @@ const observeDOM = () => {
     }
 };
 
-// Démarrer tout
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
