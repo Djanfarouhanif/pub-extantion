@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "My Style Extension",
+  "version": "1.2",
+  "description": "Applique des modifications CSS et JS automatiques.",
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Configurer les styles"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "css": [
+        "style.css"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ]
+}

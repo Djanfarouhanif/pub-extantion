@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration My Style</title>
+  <style>
+    body {
+      width: 350px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 15px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h2 { margin-top: 0; font-size: 18px; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+    h3 { font-size: 14px; margin-top: 15px; margin-bottom: 10px; color: #555; }
+
+    /* Formulaire d'ajout */
+    .add-form {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 15px;
+    }
+    input {
+      flex: 1;
+      padding: 6px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    button {
+      padding: 6px 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    button:hover { background-color: #0056b3; }
+    button.delete-btn {
+      background-color: #dc3545;
+      padding: 2px 6px;
+      font-size: 12px;
+      margin-left: auto;
+    }
+    button.delete-btn:hover { background-color: #a71d2a; }
+
+    /* Liste des règles */
+    #rules-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      background: white;
+      border-radius: 4px;
+    }
+    .rule-item {
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+    }
+    .rule-item:last-child { border-bottom: none; }
+    .rule-desc { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rule-selector { font-weight: bold; color: #007bff; margin-right: 5px; }
+    .rule-class { color: #28a745; font-family: monospace; }
+
+    /* Éditeur CSS */
+    textarea {
+      width: 100%;
+      height: 120px;
+      font-family: monospace;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: vertical;
+      font-size: 12px;
+      box-sizing: border-box; /* Important pour padding */
+    }
+    .actions { margin-top: 10px; text-align: right; }
+    .success-msg { color: #28a745; font-size: 12px; margin-right: 10px; display: none; }
+  </style>
+</head>
+<body>
+
+  <h2>My Style Extension</h2>
+
+  <h3>Ajouter une règle</h3>
+  <div class="add-form">
+    <input type="text" id="selector-input" placeholder="Sélecteur (ex: .pub, iframe)">
+    <input type="text" id="class-input" placeholder="Classe (ex: hidden)">
+    <button id="add-btn">Ajouter</button>
+  </div>
+
+  <h3>Règles actives</h3>
+  <ul id="rules-list">
+    <!-- Liste générée par JS -->
+  </ul>
+
+  <h3>CSS Personnalisé</h3>
+  <textarea id="css-editor" placeholder=".hidden { display: none !important; }"></textarea>
+
+  <div class="actions">
+    <span id="save-msg" class="success-msg">Sauvegardé !</span>
+    <button id="save-css-btn">Sauvegarder CSS</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
